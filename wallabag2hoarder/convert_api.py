@@ -1,6 +1,8 @@
 import json
+import re
 
 from base import Wallabag_Converter
+from bs4 import BeautifulSoup
 
 # test_api_key: ak1_d202e69375c111461882_b0271d0e739ce0234f96
 from requests import Response, request
@@ -44,7 +46,6 @@ class API_Converter(Wallabag_Converter):
             if entry["annotations"]:
                 self._create_annotations(id, entry)
 
-            break
         return json.dumps("Done.")
 
     def _create_bookmark(self, entry) -> Response:
@@ -81,26 +82,45 @@ class API_Converter(Wallabag_Converter):
         return response
 
     def _create_annotations(self, entry_id, entry) -> Response:
-        payload = json.dumps(
-            {
-                "bookmarkId": entry_id,
-                "startOffset": 100,
-                "endOffset": 200,
-                "color": "yellow",
-                "text": "mytext",
-                "note": "mynote",
-            }
-        )
+        payload_dict = {
+            "bookmarkId": entry_id,
+            "startOffset": 5000,
+            "endOffset": 6000,
+            "color": "yellow",
+            "text": "MYTEXT",
+            "note": "mynote",
+        }
+
         annot_url = f"{self.api_url}/highlights"
         for annot in entry["annotations"]:
+            pl = payload_dict
+            pl["text"] = annot["quote"]
+            pl["note"] = annot["text"] if "text" in annot else None
+            pl["startOffset"], pl["endOffset"] = self._calc_annot_offsets(
+                entry["content"], annot
+            )
+            if pl["startOffset"] == -1:
+                print(f"[WARNING] Annotation not found in bookmark: {annot['quote']}")
+                continue
+
             response = request(
                 "POST",
                 annot_url,
                 headers=self.headers,
-                data=payload,
+                data=json.dumps(pl),
             )
-            print(response.json())
-
+            print(f"[DEBUG] New annotation: {response.json()}")
+        response = Response()
         return response
 
-    def _calc_annot_offsets(self, content): ...
+    def _calc_annot_offsets(self, content, annot) -> tuple[int, int]:
+        print(f"START: {annot['ranges'][0]['start']}")
+        p_start_match = re.match(r"/p\[(\d+)\]", annot["ranges"][0]["start"])
+        if p_start_match and len(p_start_match.groups()) == 1:
+            p_start = int(p_start_match[1])
+
+        bs4 = BeautifulSoup(content, "lxml")
+        relevant_p = bs4.find_all("p")[p_start]
+        start_offset = str(bs4.text).find(str(relevant_p.text))
+        end_offset = start_offset + len(annot["quote"])
+        return (start_offset, end_offset)
