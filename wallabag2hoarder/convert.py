@@ -7,16 +7,18 @@ from pathlib import Path
 
 from convert_netscape import Netscape_Converter
 from convert_native_json import JSON_Converter
+from convert_api import API_Converter
 
 
 def main():
     parser = argparse.ArgumentParser(description="Process input file(s)")
     parser.add_argument("input", help="Input file")
     parser.add_argument("--output", help="Output file")
+    parser.add_argument("--hoarder-url", help="Hoarder URL destination")
+    parser.add_argument("--hoarder-key", help="Hoarder API key")
     parser.add_argument(
-        "--flavour", choices=["html", "json"], default="json", help="Flavour of output"
+        "--flavour", choices=["api", "html", "json"], default="json", help="Flavour of output"
     )
-    # TODO implement
     parser.add_argument(
         "--num", type=int, default=10, help="Number of items to process"
     )
@@ -49,6 +51,15 @@ def main():
         case "json":
             print("[DEBUG] style: json")
             OUTPUT = JSON_Converter(data).convert()
+        case "api":
+            print("[DEBUG] style: api")
+            if not args.hoarder_url or not args.hoarder_key:
+                print("Please provide valid hoarder url and api key.")
+                sys.exit(1)
+            OUTPUT = API_Converter(data, args.hoarder_url, args.hoarder_key).convert()
+        case _:
+            print("No valid conversion flavour given.")
+            sys.exit(1)
 
     if OUTPUT_FILE:
         with open(OUTPUT_FILE, "w") as f:

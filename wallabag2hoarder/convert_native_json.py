@@ -3,11 +3,6 @@ from datetime import datetime
 
 from base import Wallabag_Converter
 
-# NOTE: Wallabag annotation format is as follows:
-# [{'text': '', 'quote': "A while back they raised their prices, which lost them a lot of subscribers, because they were losing money per search at the old prices. They were actually still losing money per search on the new prices. They eventually lowered the prices back down a bit (and maybe raised them again? I've completely lost the plot on their pricing at this point) and have claimed that at 25,000 users they would be breaking even.", 'ranges': [{'start': '/p[6]', 'startOffset': '429', 'end': '/p[6]', 'endOffset': '844'}]}]
-# with /p signifying the paragraph? Hoarder only has a concept of offset, so probably have to transform the paragraphs into lengths and then add them up to convert from one format to the other.
-
-
 class JSON_Converter(Wallabag_Converter):
     def __init__(self, data: list[dict]):
         self.data = data
